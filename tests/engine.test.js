@@ -32,6 +32,7 @@ test('Chardonnay fermenting cool and steady raises nothing', () => {
 
 test('Syrah in MLF: too cold and stalled', () => {
   assert.deepEqual(kinds(3).sort(), ['mlf-cold', 'mlf-stall']);
+  assert.equal(Math.floor(analyzeBatch(3, now).metrics.mlfDay), 15);
 });
 
 test('rosé with low molecular SO2 gets a dose for its volume', () => {

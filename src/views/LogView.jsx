@@ -86,7 +86,8 @@ function So2Calculator({ batch, defaults, onUse }) {
 }
 
 export default function LogView({ batches, defaultBatchId, onSaved, notify }) {
-  const selectable = batches.filter(b => b.phase !== 'bottled');
+  // Bottled wines stay out of the picker unless you came here from one, so the picker always shows the batch you save to.
+  const selectable = batches.filter(b => b.phase !== 'bottled' || b.id === defaultBatchId);
   const [batchId, setBatchId] = useState(defaultBatchId ?? selectable[0]?.id ?? '');
   const [takenAt, setTakenAt] = useState(nowLocal());
   const [quick, setQuick] = useState('');

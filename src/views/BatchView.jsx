@@ -29,7 +29,7 @@ function KeyFigures({ batch: b, metrics: m }) {
       <div className="stats">
         <Stat label="Malic" value={fmt(m.malic, 2)} unit="g/L" tone="lead" />
         <Stat label="Wine temperature" value={fmt(m.mustF, 0)} unit="°F" />
-        <Stat label="Days in MLF" value={b.ml_inoculated_at ? Math.floor((Date.now() - new Date(b.ml_inoculated_at)) / 864e5) : '—'} />
+        <Stat label="Days in MLF" value={m.mlfDay != null ? Math.floor(m.mlfDay) : '—'} />
         <Stat label="pH" value={fmt(m.ph, 2)} />
       </div>
     );
@@ -45,21 +45,21 @@ function KeyFigures({ batch: b, metrics: m }) {
 }
 
 export default function BatchView({ batchId, version, onChanged, onLog, onAsk, notify }) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
+  const [loaded, setLoaded] = useState(null); // { id, data } or { id, error }: stale results for another batch never show
   const [showTemps, setShowTemps] = useState(true);
 
   useEffect(() => {
     let ignore = false;
-    setError(null);
-    api.batch(batchId).then(d => { if (!ignore) setData(d); }).catch(e => { if (!ignore) setError(e.message); });
+    api.batch(batchId)
+      .then(data => { if (!ignore) setLoaded({ id: batchId, data }); })
+      .catch(e => { if (!ignore) setLoaded({ id: batchId, error: e.message }); });
     return () => { ignore = true; };
   }, [batchId, version]);
 
-  if (error) return <div className="view"><p className="empty">{error}</p></div>;
-  if (!data || data.batch.id !== batchId) return <div className="view"><p className="loading">Opening the batch…</p></div>;
+  if (loaded?.id !== batchId) return <div className="view"><p className="loading">Opening the batch…</p></div>;
+  if (loaded.error) return <div className="view"><p className="empty">{loaded.error}</p></div>;
 
-  const { batch: b, metrics, alerts, curve, priorCurves, readings, additions, decisions, journal } = data;
+  const { batch: b, metrics, alerts, curve, priorCurves, readings, additions, decisions, journal } = loaded.data;
   const currentStep = STEPS.findIndex(s => s.key === b.phase);
   const shownColumns = COLUMNS.filter(([key]) => readings.some(r => r[key] != null));
   const recent = [...readings].reverse().slice(0, 30);
@@ -68,7 +68,15 @@ export default function BatchView({ batchId, version, onChanged, onLog, onAsk, n
     const previous = b.phase;
     try {
       await api.updateBatch(b.id, { phase: next });
-      onChanged({ text: `Moved to ${phaseOf(next).label.toLowerCase()}`, action: { label: 'Undo', run: async () => { await api.updateBatch(b.id, { phase: previous }); onChanged({ text: 'Phase change undone' }); } } });
+      const undo = async () => {
+        try {
+          await api.updateBatch(b.id, { phase: previous });
+          onChanged({ text: 'Phase change undone' });
+        } catch (e) {
+          notify({ text: e.message, error: true });
+        }
+      };
+      onChanged({ text: `Moved to ${phaseOf(next).label.toLowerCase()}`, action: { label: 'Undo', run: undo } });
     } catch (e) {
       notify({ text: e.message, error: true });
     }

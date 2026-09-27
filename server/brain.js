@@ -1,5 +1,6 @@
 // Brain: answers questions about the cellar. Uses Claude when ANTHROPIC_API_KEY is set,
 // otherwise answers from the built-in enology rules so the app works fully offline.
+import Anthropic from '@anthropic-ai/sdk';
 import { all, get, run } from './db.js';
 import { analyzeBatch, cellarState } from './store.js';
 import { batchName, f1, f2, i0, isFeeding, shortDate } from './analysis.js';
@@ -66,21 +67,31 @@ export function buildContext(batchId) {
 }
 
 // ── Claude ─────────────────────────────────────────────────────────────
-async function callClaude(system, messages) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({ model: model(), max_tokens: 1000, system, messages }),
-    signal: AbortSignal.timeout(60_000),
+// Only the key in .env turns Claude on: nothing leaves the machine unless you opt in.
+// The SDK retries rate limits, overloads and dropped connections before Brain falls back to the rules.
+let client;
+const claude = () => (client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 60_000, maxRetries: 1 }));
+
+async function callClaude(records, messages) {
+  const res = await claude().messages.create({
+    model: model(),
+    // Thinking counts against this cap, so leave room; the prompt keeps the visible answer short.
+    max_tokens: 16000,
+    system: [
+      { type: 'text', text: SYSTEM },
+      // The records only change when something is logged, so follow-up questions read them from cache.
+      { type: 'text', text: `<cellar_records>\n${records}\n</cellar_records>`, cache_control: { type: 'ephemeral' } },
+    ],
+    messages,
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `Claude API returned ${res.status}`);
-  return (data.content ?? []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+  if (res.stop_reason === 'refusal') throw new Error('Claude declined to answer this one');
+  const text = res.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+  if (!text) throw new Error('Claude sent back an empty answer');
+  return res.stop_reason === 'max_tokens' ? `${text}\n\n(Cut off at the length limit. Ask a narrower question for the rest.)` : text;
 }
+
+const claudeFailure = err =>
+  err instanceof Anthropic.APIError && err.status ? err.error?.error?.message ?? `Claude API returned ${err.status}` : err.message;
 
 /** Last few turns of the thread, merged so roles strictly alternate and it starts with the user. */
 function history(batchId) {
@@ -101,10 +112,10 @@ export async function respond({ batchId = null, message }) {
   let engine = 'rules';
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      content = await callClaude(`${SYSTEM}\n\n<cellar_records>\n${ctx.text}\n</cellar_records>`, history(batchId));
+      content = await callClaude(ctx.text, history(batchId));
       engine = `claude:${model()}`;
     } catch (err) {
-      content = `${offlineAnswer(message, ctx)}\n\n(Claude was unavailable: ${err.message.replace(/\.+$/, '')}. Answered from the built-in rules.)`;
+      content = `${offlineAnswer(message, ctx)}\n\n(Claude was unavailable: ${claudeFailure(err).replace(/\.+$/, '')}. Answered from the built-in rules.)`;
     }
   } else {
     content = offlineAnswer(message, ctx);

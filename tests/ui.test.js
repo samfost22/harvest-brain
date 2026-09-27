@@ -16,7 +16,7 @@ const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hb-ui-'));
 await build({ root, mode: 'development', logLevel: 'silent', build: { outDir, minify: false, emptyOutDir: true } });
 const bundle = fs.readdirSync(path.join(outDir, 'assets')).find(f => f.endsWith('.js'));
 
-const server = await startServer(8792);
+const server = await startServer();
 const { JSDOM } = await import('jsdom');
 const dom = new JSDOM('<!doctype html><html data-theme="day"><body><div id="root"></div></body></html>', { url: `${server.base}/`, pretendToBeVisual: true });
 const { window } = dom;
@@ -132,6 +132,17 @@ test('New batch links to a lineage and opens the new batch', async () => {
   await waitFor(() => /New lineage: arroyo-seco-block-11-grenache/.test(dialog.textContent), 'lineage hint');
   byText('.dialog button', /^Create batch$/).click();
   await waitFor(() => byText('h1', /^\d{4} Grenache$/), 'new batch page');
+});
+
+test('Logging from a bottled batch shows that batch in the picker', async () => {
+  byText('.tab', /Batches/).click();
+  const bottled = await waitFor(() => $$('.rail-group').find(g => /Bottled/.test(g.querySelector('h3').textContent))?.querySelector('.rail-item'), 'bottled batch');
+  bottled.click();
+  const title = (await waitFor(() => byText('h1', /^\d{4} Pinot Noir$/) && $('.stepper .current')?.textContent.includes('Bottled') && $('h1'), 'bottled page')).textContent;
+  byText('button', /^Log a reading$/).click();
+  const picker = await waitFor(() => byText('.log-top .field', /^Batch/)?.querySelector('select'), 'log picker');
+  assert.match(picker.selectedOptions[0].textContent, new RegExp(`^${title}, .*\\(bottled\\)$`));
+  assert.match($('.fields legend').textContent, /bottled/);
 });
 
 test('no React warnings, runtime errors, or error screens', () => {

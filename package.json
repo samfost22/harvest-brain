@@ -14,17 +14,25 @@
     "start": "node server/start.js",
     "seed": "node server/seed.js --reset",
     "fresh": "node server/seed.js --empty",
-    "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
+    "backup": "node server/backup.js",
+    "lint": "eslint .",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\"",
+    "check": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/eb-garamond": "^5.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
     "jsdom": "^30.1.1",
     "vite": "^8.3.1"
   }

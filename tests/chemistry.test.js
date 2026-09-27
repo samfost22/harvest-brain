@@ -37,3 +37,14 @@ test('potential alcohol, YAN need, and sugar depletion', () => {
   assert.equal(sugarDepletion(24, -1.5), 1);
   near(sugarDepletion(24, 11.25), 0.5, 1e-9);
 });
+
+test('timestamps must name a real moment', async () => {
+  const { parseStamp } = await import('../shared/time.js');
+  assert.deepEqual(parseStamp('2026-09-27T07:30'), { date: '2026-09-27', time: '07:30' });
+  assert.deepEqual(parseStamp('2026-09-27T07:30:15'), { date: '2026-09-27', time: '07:30' });
+  assert.deepEqual(parseStamp('2026-09-27'), { date: '2026-09-27', time: null });
+  assert.deepEqual(parseStamp('2028-02-29'), { date: '2028-02-29', time: null });
+  for (const bad of ['2026-02-29', '2026-13-01', '2026-09-31', '2026-09-27T24:00', '2026-09-27T12:60', '2026-09-27garbage', '9/27/2026', '', null]) {
+    assert.equal(parseStamp(bad), null, String(bad));
+  }
+});

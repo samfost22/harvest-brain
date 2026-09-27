@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { Icon } from './ui.jsx';
 import { L_PER_GAL, PHASES, todayLocal } from '../lib/format.js';
-
-const slug = (...parts) => parts.filter(Boolean).join(' ').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+import { lineageSlug } from '../../shared/curve.js';
 
 export default function NewBatchDialog({ open, lineages, facilities, onClose, onCreated, notify }) {
   const dialog = useRef(null);
@@ -30,7 +29,7 @@ export default function NewBatchDialog({ open, lineages, facilities, onClose, on
   }, [open]);
 
   const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }));
-  const autoLineage = slug(form.vineyard, form.block, form.varietal);
+  const autoLineage = lineageSlug(form.vineyard, form.block, form.varietal);
   const lineage = form.lineage || autoLineage;
   const matchesExisting = lineages.includes(lineage);
 

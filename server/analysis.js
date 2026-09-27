@@ -1,6 +1,9 @@
 // The decision engine: turns raw readings into metrics, vintage comparisons, and alerts.
 import { RULES, SEVERITY_ORDER } from '../shared/rules.js';
 import { DRY_BRIX, molecularSO2, so2Plan, sugarDepletion, yanTarget } from '../shared/chemistry.js';
+import { brixAtDay } from '../shared/curve.js';
+
+export { brixAtDay };
 
 const HOUR = 36e5;
 const DAY = 24 * HOUR;
@@ -34,21 +37,6 @@ export function afCurve(batch, readings) {
       cap: r.cap_temp_f,
       at: r.taken_at,
     }));
-}
-
-/** Linear interpolation along a curve. A finished (dry) ferment stays dry. */
-export function brixAtDay(curve, day) {
-  if (!curve.length) return null;
-  const first = curve[0];
-  const last = curve[curve.length - 1];
-  if (day <= first.day) return first.day - day <= 1 ? first.brix : null;
-  if (day > last.day) return last.brix <= 0 ? last.brix : null;
-  for (let i = 1; i < curve.length; i++) {
-    const a = curve[i - 1];
-    const b = curve[i];
-    if (day <= b.day) return a.brix + (b.brix - a.brix) * ((day - a.day) / (b.day - a.day || 1));
-  }
-  return null;
 }
 
 /** °Bx per day over roughly the last 48 h (at least 20 h of history). */
@@ -89,6 +77,7 @@ export function computeMetrics(batch, readings, nowMs = Date.now()) {
     brixAt: brixRow?.taken_at ?? null,
     ratePerDay,
     afDay: batch.inoculated_at ? (nowMs - ms(batch.inoculated_at)) / DAY : null,
+    mlfDay: batch.ml_inoculated_at ? (nowMs - ms(batch.ml_inoculated_at)) / DAY : null,
     startBrix,
     depletion: sugarDepletion(startBrix, brix),
     daysToDry: brix != null && ratePerDay > 0.2 && brix > DRY_BRIX ? (brix - DRY_BRIX) / ratePerDay : null,

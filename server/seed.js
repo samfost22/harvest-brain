@@ -2,8 +2,8 @@
 //   npm run seed   -> wipe and reseed the demo
 //   npm run fresh  -> wipe to an empty cellar
 import { pathToFileURL } from 'node:url';
-import { getDb, run, tx } from './db.js';
-import { localStamp } from './store.js';
+import { backup, count, getDb, run, tx } from './db.js';
+import { localStamp } from '../shared/time.js';
 import { DRY_BRIX } from '../shared/chemistry.js';
 
 const DAY = 864e5;
@@ -287,6 +287,7 @@ export function seedDemo(base = new Date()) {
 // CLI
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   getDb();
+  if (count('batches') > 0) console.log(`Saved a copy of the current cellar first: ${backup('before-wipe')}`);
   wipe();
   if (process.argv.includes('--empty')) {
     console.log('Cellar wiped. Start the app and add your first batch.');

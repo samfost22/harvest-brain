@@ -17,6 +17,7 @@ export const RULES = {
   staleReadingHours: 30,
 
   // Malolactic
+  coInoculationBrix: 2, // ML bacteria added above this Brix is co-inoculation: the batch stays in primary
   mlfMinTempF: 64,
   mlfDoneMalic: 0.1,   // g/L
   mlfStallDays: 10,

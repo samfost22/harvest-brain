@@ -1,3 +1,7 @@
+import { localStamp as nowLocal } from '../../shared/time.js';
+
+export { LITERS_PER_GALLON as L_PER_GAL } from '../../shared/chemistry.js';
+
 export const PHASES = [
   { key: 'pre_harvest', label: 'Pre-harvest', seal: 'H', group: 'Pre-harvest' },
   { key: 'cold_soak', label: 'Cold soak', seal: 'C', group: 'Fermenting' },
@@ -10,15 +14,11 @@ export const PHASES = [
 export const GROUP_ORDER = ['Fermenting', 'Pressed', 'Malolactic', 'Aging', 'Pre-harvest', 'Bottled'];
 export const phaseOf = key => PHASES.find(p => p.key === key) ?? PHASES[2];
 
-export const L_PER_GAL = 3.78541;
-
 /** Number with a true minus sign, or an em dash when missing. */
 export const fmt = (n, digits = 1) =>
   n == null || Number.isNaN(Number(n)) ? '—' : Number(n).toFixed(digits).replace('-', '−');
 
-const pad = n => String(n).padStart(2, '0');
-export const nowLocal = (d = new Date()) =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+export { nowLocal };
 export const todayLocal = () => nowLocal().slice(0, 10);
 export const shiftDate = (date, days) => {
   const d = new Date(`${date}T12:00`);

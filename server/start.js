@@ -13,7 +13,7 @@ try {
   // No .env file: fine. Brain answers from the built-in rules.
 }
 
-const { getDb, count, DB_PATH } = await import('./db.js');
+const { getDb, closeDb, count, DB_PATH } = await import('./db.js');
 const { handleApi } = await import('./api.js');
 const { seedDemo } = await import('./seed.js');
 const { engineName } = await import('./brain.js');
@@ -38,19 +38,35 @@ function serveStatic(req, res) {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
     return res.end('Harvest Brain API is running. For the app, use `npm run dev` and open http://localhost:5173, or run `npm run build` first.');
   }
-  const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  } catch {
+    res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
+    return res.end('Bad request');
+  }
   let file = path.resolve(dist, `.${pathname}`);
-  if (!file.startsWith(dist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(dist, 'index.html');
+  if (!file.startsWith(dist + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(dist, 'index.html');
   const type = MIME[path.extname(file)] ?? 'application/octet-stream';
   const cache = file.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache';
   res.writeHead(200, { 'content-type': type, 'cache-control': cache });
   fs.createReadStream(file).pipe(res);
 }
 
-http
+const server = http
   .createServer((req, res) => (req.url.startsWith('/api/') ? handleApi(req, res) : serveStatic(req, res)))
   .listen(PORT, HOST, () => {
-    console.log(`Harvest Brain API  http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+    console.log(`Harvest Brain API  http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${server.address().port}`);
     console.log(`Database           ${DB_PATH}`);
     console.log(`Brain engine       ${engineName() === 'rules' ? 'built-in rules (add ANTHROPIC_API_KEY to .env for Claude)' : engineName()}`);
   });
+
+// Close the database on Ctrl-C (and on each `node --watch` restart) so SQLite folds its write-ahead log
+// back into data/harvest-brain.db and the file on disk is complete.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    server.close();
+    closeDb();
+    process.exit(0);
+  });
+}

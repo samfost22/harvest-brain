@@ -1,4 +1,5 @@
 import { fmt } from '../lib/format.js';
+import { brixAtDay } from '../../shared/curve.js';
 
 // Brix by day since inoculation, with earlier vintages of the same block drawn as ghost lines.
 const W = 760;
@@ -6,18 +7,6 @@ const H = 320;
 const PAD = { l: 46, r: 48, t: 18, b: 38 };
 const TEMP = [40, 100]; // °F, right axis
 const LABEL_GAP = 18;
-
-/** Linear interpolation of Brix at a day; a finished (dry) ferment stays dry. */
-function brixAt(curve, day) {
-  if (!curve.length || day < curve[0].day) return null;
-  for (let i = 1; i < curve.length; i++) {
-    const a = curve[i - 1];
-    const b = curve[i];
-    if (day <= b.day) return a.brix + (b.brix - a.brix) * ((day - a.day) / (b.day - a.day || 1));
-  }
-  const end = curve[curve.length - 1];
-  return end.brix <= 0 ? end.brix : null;
-}
 
 /** Spread label baselines so none sit closer than LABEL_GAP to each other or to a fixed label. */
 function placeLabels(ys, fixedY) {
@@ -59,7 +48,7 @@ export default function FermentChart({ curve, priors = [], vintage, showTemps = 
 
   // Where each earlier vintage stood on the same day as this ferment's latest reading: the gap is the story.
   const marks = last
-    ? priors.map((p, i) => ({ vintage: p.vintage, i, brix: brixAt(p.curve, last.day) })).filter(m => m.brix != null)
+    ? priors.map((p, i) => ({ vintage: p.vintage, i, brix: brixAtDay(p.curve, last.day) })).filter(m => m.brix != null)
     : [];
   const currentLabelY = last ? y(last.brix) - 8 : null;
   const labelYs = placeLabels(marks.map(m => y(m.brix) + 5), currentLabelY);

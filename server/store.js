@@ -2,11 +2,9 @@
 import { all, get } from './db.js';
 import { analyze, batchName, ms } from './analysis.js';
 import { SEVERITY_ORDER } from '../shared/rules.js';
+import { localDate } from '../shared/time.js';
 
-const pad = n => String(n).padStart(2, '0');
-export const localStamp = (d = new Date()) =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-export const localDate = (d = new Date()) => localStamp(d).slice(0, 10);
+export { localDate, localStamp } from '../shared/time.js';
 
 const readingsFor = id => all('SELECT * FROM readings WHERE batch_id = ? ORDER BY taken_at, id', id);
 

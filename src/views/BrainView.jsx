@@ -14,6 +14,8 @@ const SUGGESTIONS = {
   pre_harvest: ['What YAN do I need at this Brix?'],
 };
 
+let pendingId = 0; // keys for questions shown before the server has saved them
+
 /** First sentence-ish of an answer, cleaned of markdown, as a starting point for a decision. */
 const draftDecision = text => text.replace(/\*\*/g, '').split('\n').map(l => l.replace(/^\s*[-•*]\s+|^\d+[.)]\s+/, '')).find(l => l.trim()) ?? '';
 
@@ -41,7 +43,7 @@ export default function BrainView({ batches, batchId, engine, onSelectBatch, onC
     if (!q || thinking || !loaded) return;
     setQuestion('');
     setThinking(true);
-    const optimistic = { id: `tmp-${Date.now()}`, role: 'user', content: q, created_at: null };
+    const optimistic = { id: `tmp-${++pendingId}`, role: 'user', content: q, created_at: null };
     setMessages(list => [...list, optimistic]);
     try {
       const { message } = await api.ask(batchId, q);
