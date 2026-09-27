@@ -1,0 +1,31 @@
+{
+  "name": "harvest-brain",
+  "version": "0.7.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first cellar journal and fermentation decision engine for winemakers.",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c yellow,magenta \"node --watch server/start.js\" \"vite\"",
+    "dev:lan": "concurrently -k -n api,web -c yellow,magenta \"node --watch server/start.js\" \"vite --host\"",
+    "build": "vite build",
+    "start": "node server/start.js",
+    "seed": "node server/seed.js --reset",
+    "fresh": "node server/seed.js --empty",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/eb-garamond": "^5.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
+    "jsdom": "^30.1.1",
+    "vite": "^8.3.1"
+  }
+}
