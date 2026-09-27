@@ -34,16 +34,16 @@ const MIME = {
 };
 
 function serveStatic(req, res) {
-  if (!fs.existsSync(dist)) {
-    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-    return res.end('Harvest Brain API is running. For the app, use `npm run dev` and open http://localhost:5173, or run `npm run build` first.');
-  }
   let pathname;
   try {
     pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   } catch {
     res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
     return res.end('Bad request');
+  }
+  if (!fs.existsSync(dist)) {
+    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+    return res.end('Harvest Brain API is running. For the app, use `npm run dev` and open http://localhost:5173, or run `npm run build` first.');
   }
   let file = path.resolve(dist, `.${pathname}`);
   if (!file.startsWith(dist + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(dist, 'index.html');
