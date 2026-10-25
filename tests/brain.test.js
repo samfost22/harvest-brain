@@ -22,7 +22,7 @@ after(() => { server.stop(); fake.close(); });
 
 function message(text, stop_reason = 'end_turn') {
   return {
-    id: 'msg_test', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason, stop_sequence: null,
+    id: 'msg_test', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5', stop_reason, stop_sequence: null,
     content: text == null ? [] : [{ type: 'text', text }], usage: { input_tokens: 10, output_tokens: 5 },
   };
 }
@@ -35,20 +35,20 @@ const ask = async (batchId, question) => {
 
 test('the key in .env switches Brain to Claude', async () => {
   const health = await (await fetch(`${server.base}/api/health`)).json();
-  assert.equal(health.engine, 'claude:claude-sonnet-5');
+  assert.equal(health.engine, 'claude:claude-sonnet-5-5');
 });
 
 test('Claude gets the batch records, cached, and the question; its answer is saved', async () => {
   requests.length = 0;
   const answer = await ask(1, 'Why is this slower than last year?');
-  assert.equal(answer.engine, 'claude:claude-sonnet-5');
+  assert.equal(answer.engine, 'claude:claude-sonnet-5-5');
   assert.equal(answer.content, 'Mock answer from Claude.');
 
   assert.equal(requests.length, 1);
   const { path, headers, body } = requests[0];
   assert.equal(path, '/v1/messages');
   assert.equal(headers['x-api-key'], 'test-key');
-  assert.equal(body.model, 'claude-sonnet-5');
+  assert.equal(body.model, 'claude-sonnet-5-5');
   assert.ok(body.max_tokens >= 8000, 'room for thinking plus the answer');
   const [instructions, records] = body.system;
   assert.match(instructions.text, /You are Harvest Brain/);
