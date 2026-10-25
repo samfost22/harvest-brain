@@ -7,7 +7,7 @@ import { batchName, f1, f2, i0, isFeeding, shortDate } from './analysis.js';
 import { RULES } from '../shared/rules.js';
 import { DRY_BRIX, potentialAlcohol, so2Plan, yanTarget } from '../shared/chemistry.js';
 
-export const model = () => process.env.HB_MODEL || 'claude-sonnet-5';
+export const model = () => process.env.HB_MODEL || 'claude-sonnet-5-5';
 export const engineName = () => (process.env.ANTHROPIC_API_KEY ? `claude:${model()}` : 'rules');
 
 const SYSTEM = `You are Harvest Brain, the cellar assistant inside a winemaker's personal production journal.

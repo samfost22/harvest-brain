@@ -14,7 +14,7 @@ try {
 }
 
 const { getDb, closeDb, count, DB_PATH } = await import('./db.js');
-const { handleApi } = await import('./api.js');
+const { handleApi, SECURITY_HEADERS } = await import('./api.js');
 const { seedDemo } = await import('./seed.js');
 const { engineName } = await import('./brain.js');
 
@@ -38,18 +38,18 @@ function serveStatic(req, res) {
   try {
     pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   } catch {
-    res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
+    res.writeHead(400, { ...SECURITY_HEADERS, 'content-type': 'text/plain; charset=utf-8' });
     return res.end('Bad request');
   }
   if (!fs.existsSync(dist)) {
-    res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+    res.writeHead(200, { ...SECURITY_HEADERS, 'content-type': 'text/plain; charset=utf-8' });
     return res.end('Harvest Brain API is running. For the app, use `npm run dev` and open http://localhost:5173, or run `npm run build` first.');
   }
   let file = path.resolve(dist, `.${pathname}`);
   if (!file.startsWith(dist + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(dist, 'index.html');
   const type = MIME[path.extname(file)] ?? 'application/octet-stream';
   const cache = file.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache';
-  res.writeHead(200, { 'content-type': type, 'cache-control': cache });
+  res.writeHead(200, { ...SECURITY_HEADERS, 'content-type': type, 'cache-control': cache });
   fs.createReadStream(file).pipe(res);
 }
 

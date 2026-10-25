@@ -14,12 +14,23 @@ class HttpError extends Error {
   }
 }
 
+// Sent on every response, API and app alike. No other site can frame the app (clickjacking), embed its
+// responses as a script or image, or get the browser to guess a different content type.
+export const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'content-security-policy': "frame-ancestors 'none'",
+  'referrer-policy': 'no-referrer',
+  'cross-origin-resource-policy': 'same-origin',
+};
+
 const send = (res, status, data, headers = {}) => {
-  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
+  res.writeHead(status, { ...SECURITY_HEADERS, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
   res.end(JSON.stringify(data));
 };
 
 const MAX_BODY = 1024 * 1024;
+const MAX_QUESTION = 4000;
 
 async function body(req) {
   // Requiring JSON forces a CORS preflight for cross-site requests, which this server never approves,
@@ -224,6 +235,8 @@ const routes = [
     const input = await body(req);
     const message = text(input.message);
     if (!message) throw new HttpError(400, 'Ask a question first.');
+    // Every question goes to Claude when a key is set, so keep one paste from running up the bill.
+    if (message.length > MAX_QUESTION) throw new HttpError(400, `Keep a question under ${MAX_QUESTION.toLocaleString('en-US')} characters.`);
     return { message: await respond({ batchId: batchRef(input.batchId), message }) };
   }],
 

@@ -93,6 +93,23 @@ test('oversized bodies are rejected', async () => {
   assert.equal(res.status, 413);
 });
 
+test('no other site can frame the app or sniff its responses', async () => {
+  for (const path of ['/api/health', '/', '/%E0%A4%A']) {
+    const res = await raw(path);
+    assert.equal(res.headers.get('x-frame-options'), 'DENY', path);
+    assert.equal(res.headers.get('content-security-policy'), "frame-ancestors 'none'", path);
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff', path);
+    assert.equal(res.headers.get('cross-origin-resource-policy'), 'same-origin', path);
+    await res.body.cancel();
+  }
+});
+
+test('Brain questions have a length cap, so one paste cannot run up the bill', async () => {
+  const long = await call('/api/brain', { method: 'POST', body: { batchId: 1, message: 'why '.repeat(1001) } });
+  assert.equal(long.status, 400);
+  assert.match(long.data.error, /under 4,000 characters/);
+});
+
 test('references to missing batches are a 404, not a server error', async () => {
   assert.equal((await call('/api/journal', { method: 'POST', body: { body: 'x', batchId: 999 } })).status, 404);
   assert.equal((await call('/api/decisions', { method: 'POST', body: { decision: 'x', batchId: 999 } })).status, 404);

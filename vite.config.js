@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       // Vite already allows localhost and IP addresses; also allow phone access by mDNS name (my-mac.local).
       allowedHosts: ['.local', ...extraHosts],
+      // Same no-framing rule as the API server, so another site can't overlay the app during dev.
+      headers: { 'x-frame-options': 'DENY', 'content-security-policy': "frame-ancestors 'none'", 'x-content-type-options': 'nosniff' },
       proxy: { '/api': `http://127.0.0.1:${env.PORT || 8787}` },
     },
   };
